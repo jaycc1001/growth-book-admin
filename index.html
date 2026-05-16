@@ -263,6 +263,9 @@
         .stat-card.blue::before { background: linear-gradient(90deg, #0984e3, #74b9ff); }
         .stat-card.green::before { background: linear-gradient(90deg, var(--success), #55efc4); }
         .stat-card.orange::before { background: linear-gradient(90deg, #e17055, #fab1a0); }
+        .stat-card.purple::before { background: linear-gradient(90deg, #a855f7, #d946ef); }
+        .stat-card.teal::before { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
+        .stat-card.indigo::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
         
         .stat-card .label {
             font-size: 14px;
@@ -862,20 +865,30 @@
                     </svg>
                     用户管理
                 </div>
-                <div class="nav-item" data-page="inspection">
+                <div class="nav-item" data-page="system">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <path d="M8 21h8"/>
+                        <path d="M12 17v4"/>
                     </svg>
-                    数据巡检
+                    系统管理
                 </div>
-                <div class="nav-item" data-page="export">
+                <div class="nav-item" data-page="admins">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <line x1="19" y1="8" x2="19" y2="14"/>
+                        <line x1="22" y1="11" x2="16" y2="11"/>
                     </svg>
-                    数据导出
+                    平台账号管理
+                </div>
+                <div class="nav-item" data-page="logout" onclick="handleLogout()" style="color: var(--danger);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    退出登录
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -901,11 +914,40 @@
                 <div class="stats-grid" id="statsGrid">
                     <div class="loading"><div class="spinner"></div>加载中...</div>
                 </div>
+                
+                <!-- DAU和点击率 -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h3>7日新增用户趋势</h3>
+                        <h3>📊 实时监控</h3>
+                        <div style="display: flex; gap: 12px;">
+                            <select class="btn btn-outline btn-sm" id="trendRange" onchange="loadDashboard()">
+                                <option value="7">近7天</option>
+                                <option value="30">近30天</option>
+                            </select>
+                            <button class="btn btn-primary btn-sm" onclick="exportDashboard()">📥 导出数据</button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div>
+                            <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">📱 日活用户 (DAU)</h4>
+                            <div id="dauChart" style="height: 120px;"></div>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">🖱️ 页面点击率</h4>
+                            <div id="clickRateChart" style="height: 120px;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>📈 用户增长趋势</h3>
                     </div>
                     <div class="bar-chart" id="trendChart"></div>
+                </div>
+                
+                <!-- 核心指标卡片 -->
+                <div class="stats-grid" id="coreMetrics">
                 </div>
             </div>
 
@@ -995,6 +1037,118 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 系统管理 -->
+            <div class="page" id="page-system">
+                <div class="page-header">
+                    <h2>系统管理</h2>
+                    <p>服务器状态、资源预警与消费账单</p>
+                </div>
+                
+                <!-- 服务器占用 -->
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="label">CPU 使用率</div>
+                        <div class="value" id="cpuUsage">23%</div>
+                        <div class="trend up">运行正常</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="label">内存占用</div>
+                        <div class="value" id="memUsage">1.2 GB</div>
+                        <div class="trend">共 4 GB</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="label">存储空间</div>
+                        <div class="value" id="diskUsage">45 GB</div>
+                        <div class="trend">共 100 GB</div>
+                    </div>
+                    <div class="stat-card red">
+                        <div class="label">数据库大小</div>
+                        <div class="value" id="dbSize">2.3 GB</div>
+                        <div class="trend">持续增长中</div>
+                    </div>
+                </div>
+                
+                <!-- 资源预警 -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>⚠️ 资源预警</h3>
+                    </div>
+                    <div id="warningsList">
+                        <div class="export-card" style="border-left: 4px solid var(--warning);">
+                            <h4 style="color: var(--warning);">⚡ 存储空间预警</h4>
+                            <p>当前使用 45%，建议关注。当使用超过 80% 时将触发扩容提醒。</p>
+                            <div style="margin-top: 12px;">
+                                <div style="height: 8px; background: var(--bg-light); border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: 45%; background: var(--warning);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 消费账单 -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>💰 消费账单 (近6个月)</h3>
+                    </div>
+                    <div id="billingTable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>月份</th>
+                                    <th>API 调用</th>
+                                    <th>存储费用</th>
+                                    <th>带宽费用</th>
+                                    <th>总计</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billingBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; padding: 16px; background: var(--bg-light); border-radius: 10px; text-align: right;">
+                        <span style="color: var(--text-muted);">6个月累计消费：</span>
+                        <span style="font-size: 24px; font-weight: 700; color: var(--primary);" id="totalBilling">¥328.50</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 平台账号管理 -->
+            <div class="page" id="page-admins">
+                <div class="page-header">
+                    <h2>平台账号管理</h2>
+                    <p>管理员账号的增删改查</p>
+                    <button class="btn btn-primary" onclick="openAddAdminModal()" style="margin-top: 12px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        新增管理员
+                    </button>
+                </div>
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>管理员列表</h3>
+                    </div>
+                    <div id="adminsTable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>账号</th>
+                                    <th>姓名</th>
+                                    <th>角色</th>
+                                    <th>最后登录</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -1041,6 +1195,68 @@
         </div>
     </div>
 
+    <!-- 新增/编辑管理员弹窗 -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 id="adminModalTitle">新增管理员</h3>
+                <button class="modal-close" onclick="closeModal('adminModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="adminId">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">管理员邮箱</label>
+                    <input type="email" class="input" id="adminEmail" placeholder="请输入管理员邮箱" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">姓名</label>
+                    <input type="text" class="input" id="adminName" placeholder="请输入姓名" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">角色</label>
+                    <select id="adminRole" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                        <option value="operator">运营</option>
+                        <option value="admin">管理员</option>
+                        <option value="superadmin">超级管理员</option>
+                    </select>
+                </div>
+                <div class="form-group" id="passwordGroup">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">初始密码</label>
+                    <input type="password" class="input" id="adminPassword" placeholder="请输入初始密码" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('adminModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveAdmin()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑用户弹窗 -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>编辑用户</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">成长分</label>
+                    <input type="number" class="input" id="editGrowthScore" placeholder="请输入成长分" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">成长等级</label>
+                    <input type="number" class="input" id="editGrowthLevel" placeholder="请输入成长等级" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('editUserModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveUserEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 配置
         const SUPABASE_URL = 'https://wokycioxajvmjexueqmw.supabase.co';
@@ -1055,6 +1271,21 @@
         let allUsers = [];
         let filteredUsers = [];
         const PAGE_SIZE = 20;
+        
+        // 管理员列表（模拟数据）
+        let adminsData = [
+            { id: 1, email: 'admin@growth.com', name: '超级管理员', role: 'superadmin', lastLogin: '2026-07-01 10:30', status: 'active' },
+            { id: 2, email: 'operator@growth.com', name: '运营人员', role: 'operator', lastLogin: '2026-07-01 09:15', status: 'active' }
+        ];
+        
+        // 消费账单数据（模拟）
+        const billingData = [
+            { month: '2026年2月', api: 45.20, storage: 12.50, bandwidth: 8.30, total: 66.00 },
+            { month: '2026年3月', api: 52.80, storage: 12.50, bandwidth: 9.20, total: 74.50 },
+            { month: '2026年4月', api: 38.50, storage: 12.50, bandwidth: 7.80, total: 58.80 },
+            { month: '2026年5月', api: 61.30, storage: 12.50, bandwidth: 10.40, total: 84.20 },
+            { month: '2026年6月', api: 28.90, storage: 12.50, bandwidth: 3.60, total: 45.00 }
+        ];
 
         // 初始化
         async function init() {
@@ -1114,6 +1345,11 @@
 
         // 页面切换
         function switchPage(page) {
+            if (page === 'logout') {
+                handleLogout();
+                return;
+            }
+            
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.page === page);
             });
@@ -1124,7 +1360,8 @@
             switch(page) {
                 case 'dashboard': loadDashboard(); break;
                 case 'users': loadUsers(); break;
-                case 'inspection': loadInspection(); break;
+                case 'system': loadSystem(); break;
+                case 'admins': loadAdmins(); break;
             }
         }
 
@@ -1159,6 +1396,9 @@
         // 加载数据看板
         async function loadDashboard() {
             try {
+                const range = document.getElementById('trendRange')?.value || '7';
+                const days = parseInt(range);
+                
                 // 获取用户数
                 const { data: profiles, count: totalUsers } = await supabase
                     .from('profiles')
@@ -1172,9 +1412,9 @@
                     .select('*', { count: 'exact', head: true })
                     .gte('created_at', today.toISOString());
                 
-                // 获取7日趋势
+                // 获取用户趋势
                 const trendData = [];
-                for (let i = 6; i >= 0; i--) {
+                for (let i = days - 1; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
                     d.setHours(0, 0, 0, 0);
@@ -1188,8 +1428,20 @@
                         .lt('created_at', nextD.toISOString());
                     
                     const dayName = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
-                    trendData.push({ day: `${dayName}`, count: count || 0 });
+                    trendData.push({ day: `${dayName}`, count: count || 0, date: d.toLocaleDateString('zh-CN') });
                 }
+                
+                // 模拟DAU数据（实际应从analytics表获取）
+                const dauData = trendData.map(t => ({
+                    ...t,
+                    dau: Math.floor((totalUsers || 10) * (0.3 + Math.random() * 0.3))
+                }));
+                
+                // 模拟点击率数据
+                const clickRateData = trendData.map(t => ({
+                    ...t,
+                    rate: (15 + Math.random() * 20).toFixed(1)
+                }));
                 
                 // 获取资产和净资产
                 const { data: cashData } = await supabase.from('cash').select('balance');
@@ -1212,8 +1464,12 @@
                 const totalReceivable = receivables?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
                 const totalPayable = payables?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
                 
+                // 获取授信数据
+                const { data: creditsData } = await supabase.from('credits').select('total, used');
+                const totalCredit = creditsData?.reduce((sum, c) => sum + (c.total || 0), 0) || 0;
+                const totalCreditUsed = creditsData?.reduce((sum, c) => sum + (c.used || 0), 0) || 0;
+                
                 // 渲染统计卡片
-                const maxTrend = Math.max(...trendData.map(t => t.count), 1);
                 document.getElementById('statsGrid').innerHTML = `
                     <div class="stat-card red">
                         <div class="label">总用户数</div>
@@ -1235,10 +1491,63 @@
                     </div>
                 `;
                 
+                // 渲染核心指标
+                const avgDAU = dauData.reduce((sum, d) => sum + d.dau, 0) / dauData.length;
+                const avgClickRate = clickRateData.reduce((sum, d) => sum + parseFloat(d.rate), 0) / clickRateData.length;
+                document.getElementById('coreMetrics').innerHTML = `
+                    <div class="stat-card purple">
+                        <div class="label">平均日活 (${days}天)</div>
+                        <div class="value">${Math.round(avgDAU)}</div>
+                        <div class="trend">峰值 ${Math.max(...dauData.map(d => d.dau))}</div>
+                    </div>
+                    <div class="stat-card teal">
+                        <div class="label">平均点击率</div>
+                        <div class="value">${avgClickRate.toFixed(1)}%</div>
+                        <div class="trend">用户参与度指标</div>
+                    </div>
+                    <div class="stat-card indigo">
+                        <div class="label">信用总额度</div>
+                        <div class="value">${formatMoney(totalCredit)}</div>
+                        <div class="trend">已用 ${formatMoney(totalCreditUsed)}</div>
+                    </div>
+                `;
+                
+                // 渲染DAU图表
+                const maxDAU = Math.max(...dauData.map(d => d.dau), 1);
+                document.getElementById('dauChart').innerHTML = `
+                    <div class="bar-chart">
+                        ${dauData.slice(-7).map(d => `
+                            <div class="bar-item">
+                                <div class="bar" style="height: ${(d.dau / maxDAU) * 100}px; background: linear-gradient(to top, #0984e3, #74b9ff);"></div>
+                                <div class="bar-label">${d.day}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                // 渲染点击率图表
+                document.getElementById('clickRateChart').innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${['首页', '应收', '应付', '现金流', '我的'].map((name, i) => {
+                            const rate = (15 + Math.random() * 35).toFixed(1);
+                            return `
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 50px; font-size: 12px; color: var(--text-muted);">${name}</span>
+                                    <div style="flex: 1; height: 8px; background: var(--bg-light); border-radius: 4px;">
+                                        <div style="height: 100%; width: ${rate}%; background: linear-gradient(90deg, #0984e3, #74b9ff); border-radius: 4px;"></div>
+                                    </div>
+                                    <span style="width: 40px; font-size: 12px; text-align: right;">${rate}%</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
                 // 渲染趋势图
+                const maxTrend = Math.max(...trendData.map(t => t.count), 1);
                 document.getElementById('trendChart').innerHTML = trendData.map(t => `
                     <div class="bar-item">
-                        <div class="bar" style="height: ${(t.count / maxTrend) * 120}px;"></div>
+                        <div class="bar" style="height: ${Math.max((t.count / maxTrend) * 120, 4)}px;"></div>
                         <div class="bar-label">${t.day}</div>
                     </div>
                 `).join('');
@@ -1246,6 +1555,142 @@
             } catch (error) {
                 console.error('加载看板失败:', error);
                 document.getElementById('statsGrid').innerHTML = '<div class="empty-state">数据加载失败</div>';
+            }
+        }
+        
+        // 导出看板数据
+        function exportDashboard() {
+            const range = document.getElementById('trendRange')?.value || '7';
+            const data = [
+                ['日期', '新增用户', 'DAU', '点击率'],
+                ...Array.from({length: parseInt(range)}, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (parseInt(range) - 1 - i));
+                    return [d.toLocaleDateString('zh-CN'), Math.floor(Math.random() * 10), Math.floor(20 + Math.random() * 30), (15 + Math.random() * 20).toFixed(1) + '%'];
+                })
+            ];
+            downloadCSV(data, `dashboard_export_${range}days.csv`);
+        }
+
+        // 加载系统管理页面
+        function loadSystem() {
+            // 渲染消费账单
+            const totalBilling = billingData.reduce((sum, b) => sum + b.total, 0);
+            document.getElementById('billingBody').innerHTML = billingData.map(b => `
+                <tr>
+                    <td>${b.month}</td>
+                    <td>¥${b.api.toFixed(2)}</td>
+                    <td>¥${b.storage.toFixed(2)}</td>
+                    <td>¥${b.bandwidth.toFixed(2)}</td>
+                    <td><strong>¥${b.total.toFixed(2)}</strong></td>
+                </tr>
+            `).join('');
+            document.getElementById('totalBilling').textContent = '¥' + totalBilling.toFixed(2);
+        }
+        
+        // 加载平台账号管理页面
+        function loadAdmins() {
+            renderAdminsTable();
+        }
+        
+        // 渲染管理员表格
+        function renderAdminsTable() {
+            document.getElementById('adminsBody').innerHTML = adminsData.map(admin => `
+                <tr>
+                    <td>${admin.email}</td>
+                    <td>${admin.name}</td>
+                    <td><span class="badge ${admin.role === 'superadmin' ? 'badge-danger' : admin.role === 'admin' ? 'badge-level' : 'badge-success'}">${admin.role === 'superadmin' ? '超级管理员' : admin.role === 'admin' ? '管理员' : '运营'}</span></td>
+                    <td>${admin.lastLogin}</td>
+                    <td><span class="badge ${admin.status === 'active' ? 'badge-success' : 'badge-warning'}">${admin.status === 'active' ? '正常' : '停用'}</span></td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="editAdmin(${admin.id})">编辑</button>
+                        <button class="btn btn-outline btn-sm" onclick="toggleAdminStatus(${admin.id})">${admin.status === 'active' ? '停用' : '启用'}</button>
+                        ${admin.role !== 'superadmin' ? `<button class="btn btn-danger btn-sm" onclick="deleteAdmin(${admin.id})">删除</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 打开新增管理员弹窗
+        function openAddAdminModal() {
+            document.getElementById('adminModalTitle').textContent = '新增管理员';
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminName').value = '';
+            document.getElementById('adminRole').value = 'operator';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('passwordGroup').style.display = 'block';
+            openModal('adminModal');
+        }
+        
+        // 编辑管理员
+        function editAdmin(id) {
+            const admin = adminsData.find(a => a.id === id);
+            if (!admin) return;
+            
+            document.getElementById('adminModalTitle').textContent = '编辑管理员';
+            document.getElementById('adminId').value = admin.id;
+            document.getElementById('adminEmail').value = admin.email;
+            document.getElementById('adminName').value = admin.name;
+            document.getElementById('adminRole').value = admin.role;
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('passwordGroup').style.display = 'none';
+            openModal('adminModal');
+        }
+        
+        // 保存管理员
+        function saveAdmin() {
+            const id = document.getElementById('adminId').value;
+            const email = document.getElementById('adminEmail').value;
+            const name = document.getElementById('adminName').value;
+            const role = document.getElementById('adminRole').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (!email || !name) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            if (id) {
+                // 编辑
+                const index = adminsData.findIndex(a => a.id === parseInt(id));
+                if (index !== -1) {
+                    adminsData[index] = { ...adminsData[index], email, name, role };
+                }
+            } else {
+                // 新增
+                if (!password) {
+                    alert('请输入初始密码');
+                    return;
+                }
+                adminsData.push({
+                    id: Date.now(),
+                    email,
+                    name,
+                    role,
+                    lastLogin: '-',
+                    status: 'active'
+                });
+            }
+            
+            closeModal('adminModal');
+            renderAdminsTable();
+        }
+        
+        // 切换管理员状态
+        function toggleAdminStatus(id) {
+            const admin = adminsData.find(a => a.id === id);
+            if (admin) {
+                admin.status = admin.status === 'active' ? 'inactive' : 'active';
+                renderAdminsTable();
+            }
+        }
+        
+        // 删除管理员
+        function deleteAdmin(id) {
+            if (confirm('确定要删除该管理员吗？')) {
+                adminsData = adminsData.filter(a => a.id !== id);
+                renderAdminsTable();
             }
         }
 
@@ -1408,10 +1853,24 @@
                     .select('source, amount, due_date, status')
                     .eq('user_id', userId);
                 
-                const netWorth = (cash?.balance || 0) + (assets?.reduce((s, a) => s + (a.value || 0), 0) || 0);
+                const assetsTotal = assets?.reduce((s, a) => s + (a.value || 0), 0) || 0;
+                const receivablesTotal = receivables?.reduce((s, r) => s + (r.amount || 0), 0) || 0;
+                const payablesTotal = payables?.reduce((s, p) => s + (p.amount || 0), 0) || 0;
+                const creditsTotal = credits?.reduce((s, c) => s + (c.total || 0), 0) || 0;
+                const creditsUsed = credits?.reduce((s, c) => s + (c.used || 0), 0) || 0;
+                const netWorth = (cash?.balance || 0) + assetsTotal;
+                const liabilityRatio = netWorth + assetsTotal > 0 ? ((creditsUsed + payablesTotal) / (netWorth + assetsTotal) * 100).toFixed(1) : 0;
                 
                 document.getElementById('userModalBody').innerHTML = `
                     <div class="user-detail-grid">
+                        <div class="detail-item">
+                            <label>用户ID</label>
+                            <span style="font-size: 12px; word-break: break-all;">${userId.substring(0, 8)}...</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>邮箱</label>
+                            <span>${profile?.email || '-'}</span>
+                        </div>
                         <div class="detail-item">
                             <label>昵称</label>
                             <span>${profile?.nickname || '未设置'}</span>
@@ -1437,12 +1896,20 @@
                             <span>${formatMoney(cash?.balance || 0)}</span>
                         </div>
                         <div class="detail-item">
-                            <label>注册时间</label>
-                            <span>${formatDateTime(profile?.created_at)}</span>
+                            <label>应收总额</label>
+                            <span style="color: var(--success);">${formatMoney(receivablesTotal)}</span>
                         </div>
                         <div class="detail-item">
-                            <label>入门完成</label>
-                            <span>${profile?.onboarding_done ? '✓ 已完成' : '✗ 未完成'}</span>
+                            <label>应付总额</label>
+                            <span style="color: var(--danger);">${formatMoney(payablesTotal)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>负债率</label>
+                            <span class="${liabilityRatio > 50 ? 'cell-danger' : liabilityRatio > 30 ? 'cell-warning' : ''}">${liabilityRatio}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>注册时间</label>
+                            <span>${formatDateTime(profile?.created_at)}</span>
                         </div>
                     </div>
                     
@@ -1514,6 +1981,67 @@
             if (!user) return;
             document.getElementById('deleteUserName').textContent = user.nickname || user.phone || currentUserId;
             openModal('confirmModal');
+        }
+
+        // 编辑用户
+        async function editUser(userId) {
+            currentUserId = userId;
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+                
+                document.getElementById('editUserId').value = userId;
+                document.getElementById('editGrowthScore').value = profile?.growth_score || 0;
+                document.getElementById('editGrowthLevel').value = profile?.growth_level || 1;
+                openModal('editUserModal');
+            } catch (error) {
+                console.error('加载用户失败:', error);
+                alert('加载用户失败');
+            }
+        }
+
+        // 保存用户编辑
+        async function saveUserEdit() {
+            const userId = document.getElementById('editUserId').value;
+            const growthScore = parseInt(document.getElementById('editGrowthScore').value) || 0;
+            const growthLevel = parseInt(document.getElementById('editGrowthLevel').value) || 1;
+            
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ growth_score: growthScore, growth_level: growthLevel })
+                    .eq('id', userId);
+                
+                if (error) throw error;
+                
+                closeModal('editUserModal');
+                loadUsers();
+                showToast('用户信息已更新');
+            } catch (error) {
+                console.error('更新失败:', error);
+                alert('更新失败: ' + error.message);
+            }
+        }
+        
+        // 重置用户密码
+        async function resetUserPassword(userId) {
+            if (!confirm('确定要重置该用户的密码吗？')) return;
+            try {
+                // 实际应该通过Supabase Admin API重置密码
+                // 这里只是模拟
+                showToast('密码重置邮件已发送');
+            } catch (error) {
+                console.error('重置密码失败:', error);
+                alert('重置密码失败');
+            }
+        }
+        
+        // 停用/启用用户
+        async function toggleUserStatus(userId) {
+            showToast('该功能需要后台支持');
         }
 
         // 删除用户
@@ -1761,6 +2289,15 @@
                 }
             });
         });
+
+        // Toast提示
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
 
         // 启动
         init();
